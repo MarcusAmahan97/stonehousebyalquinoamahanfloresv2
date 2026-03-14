@@ -2,12 +2,15 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import ReservationsTable from './ReservationsTable';
+import EventsTable from './EventsTable';
+import StaffSection from './StaffSection';
 
 export default function AdminDashboard() {
   const [view, setView] = useState('overview');
 
   const navItems = [
     { id: 'overview', label: 'Dashboard', icon: '📊' },
+    { id: 'rooms', label: 'Room Stays', icon: '🏠' }, // ADDED THIS
     { id: 'reservations', label: 'Reservations', icon: '📅' },
     { id: 'visits', label: 'Day Visits', icon: '☀️' },
     { id: 'events', label: 'Events & Catering', icon: '🥂' },
@@ -74,21 +77,18 @@ export default function AdminDashboard() {
 
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
           {view === 'overview' && <StatsCards />}
+          {view === 'rooms' && <RoomsTable />} {/* ADDED THIS */}
           {view === 'reservations' && <ReservationsTable />}
           {view === 'visits' && <VisitsTable />}
           {view === 'events' && <EventsTable />}
-          {view === 'staff' && (
-            <div className="bg-white p-20 rounded-[3rem] text-center border border-dashed border-stone-200">
-               <p className="text-stone-400 font-medium">Staff Assignment Module coming soon...</p>
-            </div>
-          )}
+          {view === 'staff' && <StaffSection />}
         </div>
       </main>
     </div>
   );
 }
 
-/* --- INTERNAL SUB-COMPONENTS --- */
+/* --- SUB-COMPONENTS --- */
 
 function StatsCards() {
   const stats = [
@@ -118,150 +118,140 @@ function StatsCards() {
   );
 }
 
-function EventsTable() {
-  const [events, setEvents] = useState([]);
+// NEW COMPONENT: ROOMS TABLE
+function RoomsTable() {
+  const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchEvents();
-  }, []);
+  useEffect(() => { fetchRooms(); }, []);
 
-  async function fetchEvents() {
+  async function fetchRooms() {
     try {
       setLoading(true);
-      // Ensure 'email' is included in the select query
       const { data, error } = await supabase
-        .from('event_bookings')
-        .select('*') 
-        .order('event_date', { ascending: true });
-
+        .from('room_bookings')
+        .select(`*, reservations(reserved_for, balance, reservation_status)`)
+        .order('check_in_date', { ascending: true });
       if (error) throw error;
-      setEvents(data || []);
-    } catch (error) {
-      console.error('Error:', error.message);
-    } finally {
-      setLoading(false);
-    }
+      setRooms(data || []);
+    } catch (err) { console.error(err.message); } finally { setLoading(false); }
   }
 
-  const updateStatus = async (eventObj, status) => {
-    const idColumn = eventObj.event_id ? 'event_id' : eventObj.booking_id ? 'booking_id' : 'id';
-    const actualId = eventObj[idColumn];
-
-    const { error } = await supabase
-      .from('event_bookings')
-      .update({ event_status: status })
-      .eq(idColumn, actualId);
-    
-    if (error) alert("Update Error: " + error.message);
-    else fetchEvents();
-  };
-
-  if (loading) return <div className="p-20 text-center text-stone-400 animate-pulse uppercase text-[10px] font-bold tracking-widest">Loading inquiries...</div>;
+  if (loading) return <div className="p-20 text-center animate-pulse uppercase text-[10px] font-bold tracking-widest text-stone-400">Loading stays...</div>;
 
   return (
     <div className="bg-white rounded-[2.5rem] border border-stone-100 shadow-sm overflow-hidden">
       <table className="w-full text-left">
-        <thead className="bg-stone-50 border-b border-stone-100">
+        <thead className="bg-stone-50 border-b border-stone-100 uppercase text-[10px] font-black text-stone-400 tracking-widest">
           <tr>
-            <th className="px-8 py-5 text-[10px] uppercase font-black text-stone-400 tracking-widest">Event</th>
-            <th className="px-8 py-5 text-[10px] uppercase font-black text-stone-400 tracking-widest">Contact Info</th>
-            <th className="px-8 py-5 text-[10px] uppercase font-black text-stone-400 tracking-widest">Date</th>
-            <th className="px-8 py-5 text-[10px] uppercase font-black text-stone-400 tracking-widest">Pax</th>
-            <th className="px-8 py-5 text-[10px] uppercase font-black text-stone-400 tracking-widest">Status</th>
-            <th className="px-8 py-5 text-[10px] uppercase font-black text-stone-400 tracking-widest text-right">Actions</th>
+            <th className="px-8 py-5">Guest Name</th>
+            <th className="px-8 py-5">Accommodation</th>
+            <th className="px-8 py-5">Stay Dates</th>
+            <th className="px-8 py-5">Status</th>
+            <th className="px-8 py-5">Finance</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-stone-50">
-          {events.length === 0 ? (
-            <tr><td colSpan="6" className="p-20 text-center text-stone-400 italic">No inquiries found.</td></tr>
-          ) : (
-            events.map((ev) => (
-              <tr key={ev.event_id || ev.id} className="hover:bg-stone-50/50 transition-colors">
-                <td className="px-8 py-6">
-                  <p className="font-bold text-[#1a2e1a] text-sm">{ev.event_name}</p>
-                  <p className="text-[10px] text-orange-600 font-bold uppercase">{ev.event_type}</p>
-                </td>
-                <td className="px-8 py-6">
-                  <p className="text-sm text-stone-600 font-medium">{ev.email || 'No Email Provided'}</p>
-                </td>
-                <td className="px-8 py-6 text-sm text-stone-500">{ev.event_date}</td>
-                <td className="px-8 py-6 text-sm text-stone-500">{ev.guests} pax</td>
-                <td className="px-8 py-6">
-                  <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${
-                    ev.event_status === 'Confirmed' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'
-                  }`}>
-                    {ev.event_status}
-                  </span>
-                </td>
-                <td className="px-8 py-6 text-right space-x-2">
-                  <button onClick={() => updateStatus(ev, 'Confirmed')} className="text-emerald-600 font-bold text-[10px] uppercase hover:underline">Approve</button>
-                  <button onClick={() => updateStatus(ev, 'Cancelled')} className="text-red-400 font-bold text-[10px] uppercase hover:underline">Decline</button>
-                </td>
-              </tr>
-            ))
-          )}
+          {rooms.map((r) => (
+            <tr key={r.room_booking_id} className="hover:bg-stone-50/50 transition-colors">
+              <td className="px-8 py-6">
+                <p className="font-bold text-[#1a2e1a] text-sm uppercase">{r.reservations?.reserved_for || 'Guest'}</p>
+              </td>
+              <td className="px-8 py-6">
+                <p className="text-xs font-bold text-stone-600">{r.room_type}</p>
+              </td>
+              <td className="px-8 py-6">
+                <p className="text-[10px] font-bold text-stone-500 uppercase">IN: {r.check_in_date}</p>
+                <p className="text-[10px] font-bold text-stone-400 uppercase">OUT: {r.check_out_date}</p>
+              </td>
+              <td className="px-8 py-6">
+                <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${
+                  r.reservations?.reservation_status === 'Confirmed' 
+                  ? 'bg-green-50 text-green-600' 
+                  : 'bg-blue-50 text-blue-600'
+                }`}>
+                  {r.reservations?.reservation_status || 'Pending'}
+                </span>
+              </td>
+              <td className="px-8 py-6">
+                <p className="text-xs font-black text-[#1a2e1a]">₱{r.total_price?.toLocaleString()}</p>
+                <p className={`text-[9px] font-bold uppercase ${r.reservations?.balance > 0 ? 'text-red-500' : 'text-green-600'}`}>
+                  {r.reservations?.balance > 0 ? `Bal: ₱${r.reservations.balance.toLocaleString()}` : 'Fully Paid'}
+                </p>
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
   );
 }
 
+
 function VisitsTable() {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchVisits();
-  }, []);
+  useEffect(() => { fetchVisits(); }, []);
 
-  async function fetchVisits() {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('visits')
-        .select('*')
-        .order('visit_date', { ascending: false });
+async function fetchVisits() {
+  try {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('visits')
+      .select(`
+        visit_id, visit_date, number_of_visitors,
+        customers (full_name, age, contact_number, email),
+        visit_details (visit_type, visit_details)
+      `)
+      .order('visit_date', { ascending: false });
+    if (error) throw error;
+    setVisits(data || []);
+  } catch (err) { console.error(err.message); } finally { setLoading(false); }
+}
 
-      if (error) throw error;
-      setVisits(data || []);
-    } catch (err) {
-      console.error('Fetch Error:', err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const deleteVisit = async (id) => {
+    if (!confirm("Are you sure?")) return;
+    await supabase.from('visit_details').delete().eq('visit_id', id);
+    const { error } = await supabase.from('visits').delete().eq('visit_id', id);
+    if (error) alert(error.message);
+    else fetchVisits();
+  };
 
-  if (loading) return <div className="p-20 text-center text-stone-400 animate-pulse uppercase text-[10px] font-bold tracking-widest">Fetching logs...</div>;
+  if (loading) return <div className="p-20 text-center animate-pulse uppercase text-[10px] font-bold tracking-widest text-stone-400">Fetching logs...</div>;
 
   return (
     <div className="bg-white rounded-[2.5rem] border border-stone-100 shadow-sm overflow-hidden">
       <table className="w-full text-left">
-        <thead className="bg-stone-50 border-b border-stone-100">
+        <thead className="bg-stone-50 border-b border-stone-100 uppercase text-[10px] font-black text-stone-400 tracking-widest">
           <tr>
-            <th className="px-8 py-5 text-[10px] uppercase font-black text-stone-400 tracking-widest">Visit Date</th>
-            <th className="px-8 py-5 text-[10px] uppercase font-black text-stone-400 tracking-widest">Visitors</th>
-            <th className="px-8 py-5 text-[10px] uppercase font-black text-stone-400 tracking-widest">Total Paid</th>
-            <th className="px-8 py-5 text-[10px] uppercase font-black text-stone-400 tracking-widest text-right">Status</th>
+            <th className="px-8 py-5">Customer</th>
+            <th className="px-8 py-5">Date</th>
+            <th className="px-8 py-5">Type & Notes</th>
+            <th className="px-8 py-5 text-right">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-stone-50">
-          {visits.length === 0 ? (
-            <tr><td colSpan="4" className="p-20 text-center text-stone-400 italic">No day visits recorded.</td></tr>
-          ) : (
-            visits.map((v) => (
-              <tr key={v.id || v.visit_id} className="hover:bg-stone-50/50 transition-colors">
-                <td className="px-8 py-6 font-bold text-[#1a2e1a] text-sm">
-                   {new Date(v.visit_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
-                </td>
-                <td className="px-8 py-6 text-sm text-stone-500">{v.number_of_visitors} Pax</td>
-                <td className="px-8 py-6 text-sm font-bold text-emerald-600">₱{v.total_price?.toLocaleString()}</td>
-                <td className="px-8 py-6 text-right">
-                  <span className="bg-orange-50 text-orange-600 px-3 py-1 rounded-full text-[9px] font-black uppercase">Paid</span>
-                </td>
-              </tr>
-            ))
-          )}
+          {visits.map((v) => (
+            <tr key={v.visit_id} className="hover:bg-stone-50/50">
+              <td className="px-8 py-6">
+                <p className="font-bold text-[#1a2e1a] text-sm">{v.customers?.full_name || 'Walk-in Guest'}</p>
+                <p className="text-[10px] text-stone-400 uppercase">{v.number_of_visitors} Pax</p>
+              </td>
+              <td className="px-8 py-6 text-sm text-stone-500">
+                {new Date(v.visit_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}
+              </td>
+              <td className="px-8 py-6">
+                <div className="max-w-[180px]">
+                  <span className="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-2 rounded">{v.visit_details?.[0]?.visit_type || 'Standard'}</span>
+                  <p className="text-[10px] text-stone-400 mt-1 truncate">{v.visit_details?.[0]?.visit_details}</p>
+                </div>
+              </td>
+              <td className="px-8 py-6 text-right">
+                <button onClick={() => deleteVisit(v.visit_id)} className="text-red-400 font-bold text-[10px] uppercase hover:underline">Remove</button>
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
