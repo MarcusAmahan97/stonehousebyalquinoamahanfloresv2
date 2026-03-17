@@ -41,15 +41,31 @@ export default function Home({ onStart }) {
       </section>
 
       {/* ABOUT US SECTION - No-Pic Wireframe */}
-      <section className="py-32 px-12">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-24 items-center">
+      <section className="py-24 px-6 max-w-7xl mx-auto">
+        <div className="grid md:grid-cols-2 gap-16 items-center">
           
-          {/* Wireframe Placeholder for About Image */}
-          <div className="relative aspect-[4/5] bg-stone-100 rounded-[3rem] border border-stone-200 flex items-center justify-center">
-             <div className="text-stone-300 font-serif italic text-lg">About Section Image Holder</div>
-             <div className="absolute -bottom-6 -right-6 w-64 h-64 bg-stone-200 rounded-[2rem] border-[10px] border-[#fbfbf9] shadow-xl hidden md:block"></div>
+          {/* Image Composition Section */}
+          <div className="relative aspect-[4/5]">
+            {/* Main Image (pic1.jpg) */}
+            <div className="w-full h-full bg-stone-100 rounded-[3rem] border border-stone-200 overflow-hidden">
+              <img 
+                src="/images/pic1.jpg" 
+                alt="Stone House Architecture" 
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            {/* Floating Accent Image (pic2.jpg) */}
+            <div className="absolute -bottom-6 -right-6 w-64 h-64 bg-stone-200 rounded-[2rem] border-[10px] border-[#fbfbf9] shadow-xl hidden md:block overflow-hidden">
+              <img 
+                src="/images/pic2.jpg" 
+                alt="Stone House Detail" 
+                className="w-full h-full object-cover"
+              />
+            </div>
           </div>
 
+          {/* Text Content Section */}
           <div className="space-y-12">
             <div className="space-y-4">
               <h2 className="text-5xl md:text-6xl font-bold text-[#1a2e1a] leading-[1.1] tracking-tight">
@@ -77,6 +93,7 @@ export default function Home({ onStart }) {
               The Stone House Story
             </button>
           </div>
+
         </div>
       </section>
     </div>

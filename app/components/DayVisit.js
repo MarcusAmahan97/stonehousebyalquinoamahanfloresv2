@@ -44,12 +44,10 @@ export default function DayVisit() {
   const triggerConfirm = (e) => {
     e.preventDefault();
 
-    // 1. Basic Field Validation
     if (!formData.full_name || !formData.visit_date || !formData.birthdate) {
       return showAlert("Missing Info", "Please fill in all required fields.");
     }
 
-    // 2. Date Validation (No past dates)
     const vDate = new Date(formData.visit_date);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -58,12 +56,10 @@ export default function DayVisit() {
       return showAlert("Invalid Date", "The visit date cannot be in the past.");
     }
 
-    // 3. Age Check
     if (age < 18) {
       return showAlert("Age Restriction", "You must be 18 above to book.");
     }
 
-    // 4. Contact Format
     if (!formData.contact_number.startsWith("09") || formData.contact_number.length !== 11) {
       return showAlert("Invalid Number", "Contact number must start with 09 and be 11 digits.");
     }
@@ -99,7 +95,9 @@ export default function DayVisit() {
           customer_id: customer.customer_id,
           number_of_visitors: parseInt(formData.guests),
           visit_date: formData.visit_date,
-          total_price: totalPrice
+          total_price: totalPrice,
+          balance: totalPrice, // Set balance as the total price
+          status: 'Confirmed'   // Set status to Confirmed
         }])
         .select().single();
 
@@ -134,7 +132,6 @@ export default function DayVisit() {
       </div>
       
       <form onSubmit={triggerConfirm} className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* FULL NAME */}
         <div className="flex flex-col gap-3">
           <label className="text-[10px] uppercase tracking-widest font-bold text-stone-400 ml-1">Full Name</label>
           <input 
@@ -145,7 +142,6 @@ export default function DayVisit() {
           />
         </div>
         
-        {/* BIRTHDAY */}
         <div className="flex flex-col gap-3">
           <label className="text-[10px] uppercase tracking-widest font-bold text-stone-400 ml-1">Birthday</label>
           <input 
@@ -156,7 +152,6 @@ export default function DayVisit() {
           />
         </div>
 
-        {/* CONTACT NUMBER */}
         <div className="flex flex-col gap-3">
           <label className="text-[10px] uppercase tracking-widest font-bold text-stone-400 ml-1">Contact Number</label>
           <input 
@@ -169,7 +164,6 @@ export default function DayVisit() {
           />
         </div>
         
-        {/* EMAIL */}
         <div className="flex flex-col gap-3">
           <label className="text-[10px] uppercase tracking-widest font-bold text-stone-400 ml-1">Email (Optional)</label>
           <input 
@@ -180,7 +174,6 @@ export default function DayVisit() {
           />
         </div>
 
-        {/* VISIT DATE */}
         <div className="flex flex-col gap-3 group">
           <label className="text-[10px] uppercase tracking-widest font-bold text-stone-400 ml-1 group-focus-within:text-orange-600 transition-colors">Date of Visit</label>
           <div className="relative">
@@ -194,7 +187,6 @@ export default function DayVisit() {
           </div>
         </div>
 
-        {/* GUEST COUNT */}
         <div className="flex flex-col gap-3">
           <label className="text-[10px] uppercase tracking-widest font-bold text-stone-400 ml-1">Number of Guests</label>
           <input 
@@ -207,7 +199,6 @@ export default function DayVisit() {
           />
         </div>
 
-        {/* VISIT TYPE */}
         <div className="md:col-span-2 flex flex-col gap-3">
           <label className="text-[10px] uppercase tracking-widest font-bold text-stone-400 ml-1">Type of Visit</label>
           <select 
@@ -220,7 +211,6 @@ export default function DayVisit() {
           </select>
         </div>
 
-        {/* NOTES */}
         <div className="md:col-span-2 flex flex-col gap-3">
           <label className="text-[10px] uppercase tracking-widest font-bold text-stone-400 ml-1">Special Notes</label>
           <textarea 
@@ -239,9 +229,6 @@ export default function DayVisit() {
         </button>
       </form>
 
-      {/* --- POPUP MODALS --- */}
-
-      {/* Confirmation Modal */}
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl transform animate-in zoom-in-95 duration-300">
@@ -258,7 +245,6 @@ export default function DayVisit() {
         </div>
       )}
 
-      {/* Notification Modal */}
       {notification.show && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl border border-stone-100 transform animate-in zoom-in-95 duration-300">
