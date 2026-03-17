@@ -17,7 +17,7 @@ export default function Home({ onStart }) {
         {/* Content - Positioned to be fully visible below the header */}
         <div className="relative z-10 flex flex-col items-center justify-center min-h-screen text-center px-6 pt-24">
           <span className="text-orange-400 font-bold tracking-[0.5em] text-[10px] uppercase mb-6 drop-shadow-md">
-            Buda Highlands, Philippines
+            Buda-Bukidnon Boundary, Philippines
           </span>
           <h1 className="text-6xl md:text-8xl font-bold mb-8 tracking-tighter text-white drop-shadow-2xl">
             Staycation <br />
