@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Stone House | Management System",
+  title: "Kuya Weng's | Order Tracking System",
   description: "Buda Highlands Resort Operations",
 };
 

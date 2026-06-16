@@ -1,101 +1,86 @@
 "use client";
+import { useEffect, useState } from 'react';
+import { supabase } from '@/app/lib/supabase.js';
 
-export default function Home({ onStart }) {
+export default function Home() {
+  const [orders, setOrders] = useState([]);
+
+  async function fetchActiveOrders() {
+    // Modified: Query using the actual database uppercase string states
+    const { data, error } = await supabase
+      .from('meal_orders')
+      .select('order_number, status')
+      .in('status', ['PREPARING', 'NOW SERVING']); 
+    if (!error && data) setOrders(data);
+  }
+
+  useEffect(() => {
+    fetchActiveOrders();
+
+    const channel = supabase
+      .channel('public:meal_orders')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'meal_orders' }, () => {
+          fetchActiveOrders();
+      })
+      .subscribe();
+
+    const backgroundSync = setInterval(() => {
+      fetchActiveOrders();
+    }, 3000); 
+
+    const memoryRecoveryRefresh = setInterval(() => {
+      window.location.reload();
+    }, 1000 * 60 * 120); 
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(backgroundSync);
+      clearInterval(memoryRecoveryRefresh);
+    };
+  }, []);
+
+  // Modified: Split array data based on database backend keys ('PREPARING' & 'NOW SERVING')
+  const preparing = orders.filter(o => o.status === 'PREPARING');
+  const serving = orders.filter(o => o.status === 'NOW SERVING');
+
   return (
-    <div className="flex flex-col bg-[#fbfbf9]">
-      {/* HERO SECTION - Picture is Back */}
-      <section className="relative min-h-screen -mt-24 overflow-hidden">
-        {/* Background Image */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center transition-transform duration-1000"
-          style={{ backgroundImage: `url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=2070')` }}
-        >
-          {/* Darker overlay to make white text pop */}
-          <div className="absolute inset-0 bg-black/40" />
-        </div>
+    <div className="p-6 min-h-screen bg-gray-900 text-white flex flex-col justify-between">
+      <div>
+        <header className="text-center mb-10 mt-4">
+          <h1 className="text-4xl lg:text-5xl font-black tracking-wider text-yellow-400 uppercase">Order Pick-Up Status</h1>
+          <p className="text-gray-400 text-sm mt-2">Please look out for your ticket number below</p>
+        </header>
 
-        {/* Content - Positioned to be fully visible below the header */}
-        <div className="relative z-10 flex flex-col items-center justify-center min-h-screen text-center px-6 pt-24">
-          <span className="text-orange-400 font-bold tracking-[0.5em] text-[10px] uppercase mb-6 drop-shadow-md">
-            Buda-Bukidnon Boundary, Philippines
-          </span>
-          <h1 className="text-6xl md:text-8xl font-bold mb-8 tracking-tighter text-white drop-shadow-2xl">
-            Staycation <br />
-            <span className="text-orange-400 italic font-serif leading-tight">somewhere special</span>
-          </h1>
-          <button 
-            onClick={onStart}
-            className="group px-14 py-5 bg-white text-[#1a2e1a] font-bold rounded-full hover:bg-orange-500 hover:text-white transition-all shadow-2xl active:scale-95 flex items-center gap-3"
-          >
-            BOOK YOUR STAY
-            <span className="group-hover:translate-x-1 transition-transform">→</span>
-          </button>
-        </div>
-
-        {/* Wave Transition to About Section */}
-        <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-[0]">
-          <svg className="relative block w-full h-[80px]" viewBox="0 0 1200 120" preserveAspectRatio="none">
-            <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V0C41.7,33.53,151.78,67.75,321.39,56.44Z" className="fill-[#fbfbf9]"></path>
-          </svg>
-        </div>
-      </section>
-
-      {/* ABOUT US SECTION - No-Pic Wireframe */}
-      <section className="py-24 px-6 max-w-7xl mx-auto">
-        <div className="grid md:grid-cols-2 gap-16 items-center">
-          
-          {/* Image Composition Section */}
-          <div className="relative aspect-[4/5]">
-            {/* Main Image (pic1.jpg) */}
-            <div className="w-full h-full bg-stone-100 rounded-[3rem] border border-stone-200 overflow-hidden">
-              <img 
-                src="/images/pic1.jpg" 
-                alt="Stone House Architecture" 
-                className="w-full h-full object-cover"
-              />
-            </div>
-
-            {/* Floating Accent Image (pic2.jpg) */}
-            <div className="absolute -bottom-6 -right-6 w-64 h-64 bg-stone-200 rounded-[2rem] border-[10px] border-[#fbfbf9] shadow-xl hidden md:block overflow-hidden">
-              <img 
-                src="/images/pic2.jpg" 
-                alt="Stone House Detail" 
-                className="w-full h-full object-cover"
-              />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+          {/* Column 1: Display Label says ORDERS while reading 'PREPARING' from backend mapping */}
+          <div className="bg-gray-800 rounded-2xl border-4 border-orange-500/30 shadow-2xl p-6">
+            <h2 className="text-2xl lg:text-3xl font-extrabold text-orange-400 flex items-center gap-2 border-b border-gray-700 pb-4 mb-6">
+              <span className="animate-pulse block h-3 w-3 rounded-full bg-orange-500"></span> ORDERS
+            </h2>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 font-mono text-3xl font-bold tracking-widest text-center text-gray-300">
+              {preparing.length ? preparing.map(o => (
+                <div key={o.order_number} className="bg-gray-700/50 p-3 rounded-lg border border-gray-700">{o.order_number}</div>
+              )) : <div className="col-span-full text-lg font-normal py-6 text-gray-500 italic">None</div>}
             </div>
           </div>
 
-          {/* Text Content Section */}
-          <div className="space-y-12">
-            <div className="space-y-4">
-              <h2 className="text-5xl md:text-6xl font-bold text-[#1a2e1a] leading-[1.1] tracking-tight">
-                Built by Nature, <br/>Refining the Escape.
-              </h2>
-              <div className="w-20 h-1 bg-orange-500 rounded-full"></div>
+          {/* Column 2: Now Serving */}
+          <div className="bg-gray-800 rounded-2xl border-4 border-green-500/30 shadow-2xl p-6">
+            <h2 className="text-2xl lg:text-3xl font-extrabold text-green-400 flex items-center gap-2 border-b border-gray-700 pb-4 mb-6">
+              <span className="animate-ping block h-3 w-3 rounded-full bg-green-400"></span> NOW SERVING
+            </h2>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 font-mono text-4xl font-black tracking-widest text-center text-green-400">
+              {serving.length ? serving.map(o => (
+                <div key={o.order_number} className="bg-green-950/40 text-green-400 p-3 rounded-lg border border-green-500/40 shadow-lg">{o.order_number}</div>
+              )) : <div className="col-span-full text-lg font-normal py-6 text-gray-500 italic">None</div>}
             </div>
-            
-            <p className="text-stone-600 text-xl leading-relaxed font-light">
-              Founded on the belief that nature is the best architect, Stone House was built using locally sourced river stones and sustainable timber. Nestled 4,000 feet above sea level.
-            </p>
-
-            <div className="flex gap-12 pt-8 border-t border-stone-200">
-              <div>
-                <p className="text-3xl font-bold text-[#1a2e1a]">4k ft</p>
-                <p className="text-[10px] text-stone-400 uppercase tracking-widest font-bold mt-1">Elevation</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-[#1a2e1a]">12</p>
-                <p className="text-[10px] text-stone-400 uppercase tracking-widest font-bold mt-1">Private Units</p>
-              </div>
-            </div>
-
-            <button className="text-[#1a2e1a] font-bold text-xs tracking-[0.2em] border-b-2 border-stone-200 pb-2 hover:border-orange-500 transition-all uppercase">
-              The Stone House Story
-            </button>
           </div>
-
         </div>
-      </section>
+      </div>
+      
+      <footer className="text-center pt-8 text-xs text-gray-500 tracking-wide">
+        Live Cloud Synchronization Powered via Supabase Realtime Channels
+      </footer>
     </div>
   );
 }
